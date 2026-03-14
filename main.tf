@@ -12,6 +12,7 @@ provider "aws" {
     lambda     = "http://localhost:4566"
     iam        = "http://localhost:4566"
     apigateway = "http://localhost:4566"
+    cloudwatchlogs = "http://localhost:4566"
   }
 }
 
@@ -42,7 +43,7 @@ resource "aws_iam_role" "lambda_role" {
 
 
 resource "aws_iam_role_policy" "lambda_policy" {
-  name = "lambda-dynamodb-policy"
+  name = "lambda-policy"
   role = aws_iam_role.lambda_role.id
 
   policy = jsonencode ({
@@ -54,8 +55,24 @@ resource "aws_iam_role_policy" "lambda_policy" {
         "dynamodb:GetItem"
       ]
       Resource = aws_dynamodb_table.url_table.arn
-    }]
+    },
+    {
+      Effect = "Allow"
+      Action = [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ]
+      Resource = "arn:aws:logs:*:*:*"
+    }
+    
+    ]
   })
+}
+
+resource "aws_cloudwatch_log_group" "log_group" {
+  name = "/aws/lambda/${aws_lambda_function.url_shortener.function_name}"
+  retention_in_days = 14
 }
 
 data "archive_file" "lambda_zip" {
@@ -144,3 +161,4 @@ resource "aws_lambda_permission" "api_gateway_permission" {
   principal = "apigateway.amazonaws.com"
   source_arn = "${aws_api_gateway_rest_api.url_shortener_api.execution_arn}/*/*"
 }
+

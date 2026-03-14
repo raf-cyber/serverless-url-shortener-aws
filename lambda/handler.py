@@ -2,6 +2,10 @@ import json
 import boto3
 import string
 import random
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 dynamo_db = boto3.resource('dynamodb', endpoint_url = 'http://host.docker.internal:4566')
@@ -18,10 +22,12 @@ def lambda_handler(event, context):
         body = json.loads(event.get('body', '{}'))
         long_url = body.get('url')
         if not long_url:
+            logger.error(f"Long URL not found: {long_url}")
             return{
                 'statusCode' : 400,
                 'body' : json.dumps({'error' : 'url is required'})
             }
+            
         
         short_code = generate_short_code()
 
@@ -29,7 +35,7 @@ def lambda_handler(event, context):
             'short_code' : short_code,
             'long_url' : long_url
         })
-
+        logger.info(f"Short code has been generated: {short_code}")
         return {
             'statusCode' : 200,
             'body' : json.dumps(
@@ -41,7 +47,6 @@ def lambda_handler(event, context):
         }
     elif event.get('httpMethod') == 'GET':
         shortCode = event.get('pathParameters', {}).get('short_code')
-
         response = table.get_item(
             Key = {
             'short_code' : shortCode
@@ -51,10 +56,12 @@ def lambda_handler(event, context):
         
 
         if not item:
+            logger.error(f"Long URL not found: {shortCode}")
             return {'statusCode' : 404, 'body' : json.dumps({'error' : 'URL not found'})}
 
         longUrl = item.get('long_url')
         
+        logger.info(f"Short code {shortCode} resolved to {longUrl}")
         return {
             'statusCode' : 302,
             'headers' : {'Location' : longUrl}
