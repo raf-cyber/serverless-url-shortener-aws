@@ -8,6 +8,6 @@
 lambda/handler.zip
 
 # Test files
-response.json
-payload.json
-payload_get.json
+/response.json
+/payload.json
+/payload_get.json
